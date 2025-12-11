@@ -372,51 +372,65 @@
       });
 
       // Setup mobile menu
-      function setupMobileMenu() {
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const mobileMenu = document.getElementById('mobileMenu');
-        const menuIcon = document.getElementById('menuIcon');
-        const closeIcon = document.getElementById('closeIcon');
-        const mobileMenuItems = document.querySelectorAll('.mobile-menu-item');
+function setupMobileMenu() {
+  const mobileMenuBtn = document.getElementById('menuBtn');  // Sesuaikan dengan HTML baru
+  const mobileMenu = document.getElementById('mobileMenu');
+  const menuIcon = document.getElementById('menuIcon');
+  const closeIcon = document.getElementById('closeIcon');
 
-        // Toggle menu on button click
-        mobileMenuBtn.addEventListener('click', function() {
-          const isHidden = mobileMenu.classList.contains('hidden');
+  // Debug: Cek apakah elemen ditemukan
+  if (!mobileMenuBtn) {
+    console.error('Button tidak ditemukan! Cek ID button di HTML');
+    return;
+  }
 
-          if (isHidden) {
-            mobileMenu.classList.remove('hidden');
-            mobileMenu.classList.add('animate-slideDown');
-            menuIcon.classList.add('hidden');
-            closeIcon.classList.remove('hidden');
-          } else {
-            mobileMenu.classList.add('hidden');
-            mobileMenu.classList.remove('animate-slideDown');
-            menuIcon.classList.remove('hidden');
-            closeIcon.classList.add('hidden');
-          }
-        });
+  // Toggle menu on button click
+  mobileMenuBtn.addEventListener('click', function(e) {
+    e.stopPropagation(); // Prevent bubbling
+    
+    const isHidden = mobileMenu.classList.contains('hidden');
 
-        // Close menu when clicking a menu item
-        mobileMenuItems.forEach(item => {
-          item.addEventListener('click', function() {
-            mobileMenu.classList.add('hidden');
-            menuIcon.classList.remove('hidden');
-            closeIcon.classList.add('hidden');
-          });
-        });
+    if (isHidden) {
+      // Open menu
+      mobileMenu.classList.remove('hidden');
+      mobileMenu.classList.add('active');
+      menuIcon.classList.add('hidden');
+      closeIcon.classList.remove('hidden');
+    } else {
+      // Close menu
+      mobileMenu.classList.add('hidden');
+      mobileMenu.classList.remove('active');
+      menuIcon.classList.remove('hidden');
+      closeIcon.classList.add('hidden');
+    }
+  });
 
-        // Close menu when clicking outside
-        document.addEventListener('click', function(event) {
-          const isClickInsideMenu = mobileMenu.contains(event.target);
-          const isClickOnButton = mobileMenuBtn.contains(event.target);
-
-          if (!isClickInsideMenu && !isClickOnButton && !mobileMenu.classList.contains('hidden')) {
-            mobileMenu.classList.add('hidden');
-            menuIcon.classList.remove('hidden');
-            closeIcon.classList.add('hidden');
-          }
-        });
+  // Close menu when clicking a menu item
+  const mobileMenuItems = document.querySelectorAll('a[href^="#"]'); // Semua link anchor
+  mobileMenuItems.forEach(item => {
+    item.addEventListener('click', function() {
+      if (!mobileMenu.classList.contains('hidden')) {
+        mobileMenu.classList.add('hidden');
+        mobileMenu.classList.remove('active');
+        menuIcon.classList.remove('hidden');
+        closeIcon.classList.add('hidden');
       }
+    });
+  });
+
+  // Close menu when clicking outside
+  document.addEventListener('click', function(event) {
+    const isClickInsideMenu = mobileMenu.contains(event.target);
+    const isClickOnButton = mobileMenuBtn.contains(event.target);
+
+    if (!isClickInsideMenu && !isClickOnButton && !mobileMenu.classList.contains('hidden')) {
+      mobileMenu.classList.add('hidden');
+      mobileMenu.classList.remove('active');
+      menuIcon.classList.remove('hidden');
+      closeIcon.classList.add('hidden');
+    }
+  });
+}
 
       // Load available years
       async function loadAvailableYears() {
