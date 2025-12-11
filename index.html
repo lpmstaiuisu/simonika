@@ -360,25 +360,45 @@
     </footer>
 
     <script>
-      // Data storage
-      let currentData = null;
-      let charts = {};
+// Data storage
+let currentData = null;
+let charts = {};
+let isRendering = false; // Flag untuk prevent multiple renders
 
-      // Initialize
-      document.addEventListener('DOMContentLoaded', function() {
-        loadAvailableYears();
-        setupEventListeners();
-        setupMobileMenu();
-      });
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+  loadAvailableYears();
+  setupEventListeners();
+  setupMobileMenu();
+  optimizeScrollPerformance(); // Tambahan untuk smooth scroll
+});
 
-      // Setup mobile menu
+// Optimize scroll performance
+function optimizeScrollPerformance() {
+  // Disable scroll chaining yang bisa bikin stuck
+  document.body.style.overscrollBehavior = 'contain';
+  
+  // Add smooth scroll behavior
+  document.documentElement.style.scrollBehavior = 'smooth';
+  
+  // Prevent iOS bounce scroll yang bisa bikin janky
+  let lastY = 0;
+  document.addEventListener('touchmove', function(e) {
+    const currentY = e.touches[0].clientY;
+    if (currentY === lastY) {
+      e.preventDefault();
+    }
+    lastY = currentY;
+  }, { passive: false });
+}
+
+// Setup mobile menu
 function setupMobileMenu() {
-  const mobileMenuBtn = document.getElementById('menuBtn');  // Sesuaikan dengan HTML baru
+  const mobileMenuBtn = document.getElementById('menuBtn');
   const mobileMenu = document.getElementById('mobileMenu');
   const menuIcon = document.getElementById('menuIcon');
   const closeIcon = document.getElementById('closeIcon');
 
-  // Debug: Cek apakah elemen ditemukan
   if (!mobileMenuBtn) {
     console.error('Button tidak ditemukan! Cek ID button di HTML');
     return;
@@ -386,18 +406,16 @@ function setupMobileMenu() {
 
   // Toggle menu on button click
   mobileMenuBtn.addEventListener('click', function(e) {
-    e.stopPropagation(); // Prevent bubbling
+    e.stopPropagation();
     
     const isHidden = mobileMenu.classList.contains('hidden');
 
     if (isHidden) {
-      // Open menu
       mobileMenu.classList.remove('hidden');
       mobileMenu.classList.add('active');
       menuIcon.classList.add('hidden');
       closeIcon.classList.remove('hidden');
     } else {
-      // Close menu
       mobileMenu.classList.add('hidden');
       mobileMenu.classList.remove('active');
       menuIcon.classList.remove('hidden');
@@ -406,14 +424,22 @@ function setupMobileMenu() {
   });
 
   // Close menu when clicking a menu item
-  const mobileMenuItems = document.querySelectorAll('a[href^="#"]'); // Semua link anchor
+  const mobileMenuItems = document.querySelectorAll('a[href^="#"]');
   mobileMenuItems.forEach(item => {
-    item.addEventListener('click', function() {
+    item.addEventListener('click', function(e) {
       if (!mobileMenu.classList.contains('hidden')) {
         mobileMenu.classList.add('hidden');
         mobileMenu.classList.remove('active');
         menuIcon.classList.remove('hidden');
         closeIcon.classList.add('hidden');
+      }
+      
+      // Smooth scroll ke target
+      e.preventDefault();
+      const targetId = this.getAttribute('href');
+      const targetElement = document.querySelector(targetId);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
   });
@@ -432,91 +458,116 @@ function setupMobileMenu() {
   });
 }
 
-      // Load available years
-      async function loadAvailableYears() {
-        try {
-          const response = await fetch('data/available-years.json');
-          const years = await response.json();
+// Load available years
+async function loadAvailableYears() {
+  try {
+    const response = await fetch('data/available-years.json');
+    const years = await response.json();
 
-          const selector = document.getElementById('yearSelector');
-          years.forEach(year => {
-            const option = document.createElement('option');
-            option.value = year;
-            option.textContent = year;
-            selector.appendChild(option);
-          });
+    const selector = document.getElementById('yearSelector');
+    years.forEach(year => {
+      const option = document.createElement('option');
+      option.value = year;
+      option.textContent = year;
+      selector.appendChild(option);
+    });
 
-          // Auto select latest year if available
-          if (years.length > 0) {
-            selector.value = years[years.length - 1];
-            loadYearData(years[years.length - 1]);
-          }
-        } catch (error) {
-          console.error('Error loading years:', error);
-          showNotice();
-        }
-      }
+    if (years.length > 0) {
+      selector.value = years[years.length - 1];
+      loadYearData(years[years.length - 1]);
+    }
+  } catch (error) {
+    console.error('Error loading years:', error);
+    showNotice();
+  }
+}
 
-      // Setup event listeners
-      function setupEventListeners() {
-        document.getElementById('yearSelector').addEventListener('change', function(e) {
-          const year = e.target.value;
-          if (year) {
-            loadYearData(year);
-          } else {
-            showNotice();
-          }
-        });
-      }
+// Setup event listeners
+function setupEventListeners() {
+  document.getElementById('yearSelector').addEventListener('change', function(e) {
+    const year = e.target.value;
+    if (year) {
+      loadYearData(year);
+    } else {
+      showNotice();
+    }
+  });
+}
 
-      // Load data for selected year
-      async function loadYearData(year) {
-        try {
-          const response = await fetch(`data/${year}.json`);
-          if (!response.ok) throw new Error('Data not found');
+// Load data for selected year
+async function loadYearData(year) {
+  try {
+    const response = await fetch(`data/${year}.json`);
+    if (!response.ok) throw new Error('Data not found');
 
-          currentData = await response.json();
-          hideNotice();
-          renderDashboard(currentData);
-        } catch (error) {
-          console.error('Error loading data:', error);
-          showNotice();
-        }
-      }
+    currentData = await response.json();
+    hideNotice();
+    renderDashboard(currentData);
+  } catch (error) {
+    console.error('Error loading data:', error);
+    showNotice();
+  }
+}
 
-      // Show/hide notice
-      function showNotice() {
-        document.getElementById('dataNotice').classList.remove('hidden');
-        document.getElementById('dashboardContent').classList.add('hidden');
-      }
+// Show/hide notice
+function showNotice() {
+  document.getElementById('dataNotice').classList.remove('hidden');
+  document.getElementById('dashboardContent').classList.add('hidden');
+}
 
-      function hideNotice() {
-        document.getElementById('dataNotice').classList.add('hidden');
-        document.getElementById('dashboardContent').classList.remove('hidden');
-      }
+function hideNotice() {
+  document.getElementById('dataNotice').classList.add('hidden');
+  document.getElementById('dashboardContent').classList.remove('hidden');
+}
 
-      // Render dashboard with data
-      function renderDashboard(data) {
-        // Update summary cards
-        document.getElementById('totalResponden').textContent = data.summary.totalResponden;
-        document.getElementById('mengetahuiVMTS').textContent = data.summary.mengetahuiVMTS + '%';
-        document.getElementById('ikutSosialisasi').textContent = data.summary.ikutSosialisasi + '%';
-        document.getElementById('perluPerbaikan').textContent = data.summary.perluPerbaikan + '%';
+// Render dashboard with data - OPTIMIZED
+function renderDashboard(data) {
+  if (isRendering) return; // Prevent multiple simultaneous renders
+  isRendering = true;
 
-        // Render charts
-        renderStatusChart(data.status);
-        renderPemahamanChart(data.pemahaman);
-        renderProdiChart(data.prodi);
-        renderAtmosferChart(data.atmosfer);
+  // Update summary cards
+  document.getElementById('totalResponden').textContent = data.summary.totalResponden;
+  document.getElementById('mengetahuiVMTS').textContent = data.summary.mengetahuiVMTS + '%';
+  document.getElementById('ikutSosialisasi').textContent = data.summary.ikutSosialisasi + '%';
+  document.getElementById('perluPerbaikan').textContent = data.summary.perluPerbaikan + '%';
 
-        // Render detailed info
-        renderSumberInfo('sumberInfoPT', data.sumberInfoPT);
-        renderSumberInfo('sumberInfoProdi', data.sumberInfoProdi);
-      }
+  // Destroy old charts FIRST untuk free memory
+  Object.keys(charts).forEach(key => {
+    if (charts[key]) {
+      charts[key].destroy();
+      charts[key] = null;
+    }
+  });
 
-      // Render status chart
+  // Render charts dengan delay untuk smooth rendering
+  requestAnimationFrame(() => {
+    renderStatusChart(data.status);
+    
+    setTimeout(() => {
+      renderPemahamanChart(data.pemahaman);
+    }, 50);
+    
+    setTimeout(() => {
+      renderProdiChart(data.prodi);
+    }, 100);
+    
+    setTimeout(() => {
+      renderAtmosferChart(data.atmosfer);
+    }, 150);
+    
+    setTimeout(() => {
+      renderSumberInfo('sumberInfoPT', data.sumberInfoPT);
+      renderSumberInfo('sumberInfoProdi', data.sumberInfoProdi);
+      isRendering = false;
+    }, 200);
+  });
+}
+
+// Render status chart - OPTIMIZED
 function renderStatusChart(data) {
   const ctx = document.getElementById('statusChart');
+  if (!ctx) return;
+  
   if (charts.status) charts.status.destroy();
   
   charts.status = new Chart(ctx, {
@@ -525,13 +576,7 @@ function renderStatusChart(data) {
       labels: Object.keys(data),
       datasets: [{
         data: Object.values(data),
-        backgroundColor: [
-          '#064e3b',  // Dark green
-          '#059669',  // Medium green
-          '#10b981',  // Bright green
-          '#34d399',  // Light green
-          '#6ee7b7'   // Very light green
-        ],
+        backgroundColor: ['#064e3b', '#059669', '#10b981', '#34d399', '#6ee7b7'],
         borderWidth: 4,
         borderColor: '#ffffff',
         hoverBorderWidth: 6,
@@ -543,6 +588,12 @@ function renderStatusChart(data) {
       responsive: true,
       maintainAspectRatio: true,
       cutout: '65%',
+      animation: {
+        animateRotate: true,
+        animateScale: true,
+        duration: 800, // Reduced from 1500
+        easing: 'easeInOutQuart'
+      },
       plugins: {
         legend: {
           position: 'bottom',
@@ -571,40 +622,33 @@ function renderStatusChart(data) {
             }
           }
         }
-      },
-      animation: {
-        animateRotate: true,
-        animateScale: true,
-        duration: 1500,
-        easing: 'easeInOutQuart'
       }
     }
   });
 }
 
-      // Render pemahaman chart (dengan gradient untuk skala Likert)
+// Render pemahaman chart - OPTIMIZED
 function renderPemahamanChart(data) {
   const ctx = document.getElementById('pemahamanChart');
+  if (!ctx) return;
+  
   if (charts.pemahaman) charts.pemahaman.destroy();
 
-  // Urutkan data berdasarkan skala (1-5)
   const sortedEntries = Object.entries(data).sort((a, b) => {
     const aNum = parseInt(a[0]);
     const bNum = parseInt(b[0]);
-    if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
-    return 0;
+    return (!isNaN(aNum) && !isNaN(bNum)) ? aNum - bNum : 0;
   });
 
   const labels = sortedEntries.map(e => e[0]);
   const values = sortedEntries.map(e => e[1]);
 
-  // Gradient warna dari merah ke hijau untuk skala Likert
   const gradientColors = [
-    { bg: 'rgba(239, 68, 68, 0.85)', border: '#dc2626' },   // 1 - Merah
-    { bg: 'rgba(251, 146, 60, 0.85)', border: '#ea580c' },  // 2 - Orange
-    { bg: 'rgba(250, 204, 21, 0.85)', border: '#ca8a04' },  // 3 - Kuning
-    { bg: 'rgba(16, 185, 129, 0.85)', border: '#059669' },  // 4 - Hijau medium
-    { bg: 'rgba(6, 78, 59, 0.85)', border: '#064e3b' }      // 5 - Hijau tua
+    { bg: 'rgba(239, 68, 68, 0.85)', border: '#dc2626' },
+    { bg: 'rgba(251, 146, 60, 0.85)', border: '#ea580c' },
+    { bg: 'rgba(250, 204, 21, 0.85)', border: '#ca8a04' },
+    { bg: 'rgba(16, 185, 129, 0.85)', border: '#059669' },
+    { bg: 'rgba(6, 78, 59, 0.85)', border: '#064e3b' }
   ];
 
   charts.pemahaman = new Chart(ctx, {
@@ -626,6 +670,10 @@ function renderPemahamanChart(data) {
     options: {
       responsive: true,
       maintainAspectRatio: true,
+      animation: {
+        duration: 800, // Reduced from 1500
+        easing: 'easeInOutQuart'
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -664,25 +712,20 @@ function renderPemahamanChart(data) {
             color: '#1f2937',
             font: { size: 13, weight: '700' }
           },
-          grid: {
-            display: false
-          }
+          grid: { display: false }
         }
-      },
-      animation: {
-        duration: 1500,
-        easing: 'easeInOutQuart'
       }
     }
   });
 }
 
-      // Render prodi chart
+// Render prodi chart - OPTIMIZED
 function renderProdiChart(data) {
   const ctx = document.getElementById('prodiChart');
+  if (!ctx) return;
+  
   if (charts.prodi) charts.prodi.destroy();
   
-  // Buat gradient untuk setiap bar
   const canvas = ctx;
   const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 400, 0);
   gradient.addColorStop(0, '#064e3b');
@@ -710,6 +753,11 @@ function renderProdiChart(data) {
       responsive: true,
       maintainAspectRatio: true,
       indexAxis: 'y',
+      animation: {
+        duration: 800, // Reduced
+        easing: 'easeInOutQuart',
+        delay: (context) => context.dataIndex * 50 // Reduced from 100
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -743,46 +791,30 @@ function renderProdiChart(data) {
             color: '#1f2937',
             font: { size: 12, weight: '600' }
           },
-          grid: {
-            display: false
-          }
-        }
-      },
-      animation: {
-        duration: 1500,
-        easing: 'easeInOutQuart',
-        delay: (context) => {
-          return context.dataIndex * 100;
+          grid: { display: false }
         }
       }
     }
   });
 }
 
-      // Render atmosfer chart (dengan gradient untuk skala Likert)
+// Render atmosfer chart - OPTIMIZED
 function renderAtmosferChart(data) {
   const ctx = document.getElementById('atmosferChart');
+  if (!ctx) return;
+  
   if (charts.atmosfer) charts.atmosfer.destroy();
 
-  // Urutkan data berdasarkan skala (1-5)
   const sortedEntries = Object.entries(data).sort((a, b) => {
     const aNum = parseInt(a[0]);
     const bNum = parseInt(b[0]);
-    if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
-    return 0;
+    return (!isNaN(aNum) && !isNaN(bNum)) ? aNum - bNum : 0;
   });
 
   const labels = sortedEntries.map(e => e[0]);
   const values = sortedEntries.map(e => e[1]);
 
-  // Gradient warna dari merah ke hijau dengan saturasi tinggi
-  const colors = [
-    '#ef4444',  // 1 - Merah cerah
-    '#f97316',  // 2 - Orange cerah
-    '#eab308',  // 3 - Kuning cerah
-    '#10b981',  // 4 - Hijau medium
-    '#064e3b'   // 5 - Hijau tua
-  ];
+  const colors = ['#ef4444', '#f97316', '#eab308', '#10b981', '#064e3b'];
 
   charts.atmosfer = new Chart(ctx, {
     type: 'pie',
@@ -801,6 +833,12 @@ function renderAtmosferChart(data) {
     options: {
       responsive: true,
       maintainAspectRatio: true,
+      animation: {
+        animateRotate: true,
+        animateScale: true,
+        duration: 800, // Reduced from 1500
+        easing: 'easeInOutQuart'
+      },
       plugins: {
         legend: {
           position: 'bottom',
@@ -828,20 +866,16 @@ function renderAtmosferChart(data) {
             }
           }
         }
-      },
-      animation: {
-        animateRotate: true,
-        animateScale: true,
-        duration: 1500,
-        easing: 'easeInOutQuart'
       }
     }
   });
 }
 
-      // Render sumber info
+// Render sumber info - OPTIMIZED
 function renderSumberInfo(elementId, data) {
   const container = document.getElementById(elementId);
+  if (!container) return;
+  
   container.innerHTML = '';
 
   const maxValue = Math.max(...Object.values(data));
@@ -852,7 +886,6 @@ function renderSumberInfo(elementId, data) {
 
     const percentage = (value / maxValue) * 100;
 
-    // Gradient color berdasarkan index
     const gradients = [
       'from-green-600 via-green-500 to-emerald-400',
       'from-emerald-600 via-emerald-500 to-teal-400',
@@ -870,7 +903,7 @@ function renderSumberInfo(elementId, data) {
           <span class="text-sm font-bold text-green-700 bg-green-50 px-2 py-1 rounded-full">${value}</span>
         </div>
         <div class="w-full bg-gray-200 rounded-full h-3 shadow-inner overflow-hidden">
-          <div class="bg-gradient-to-r ${gradientClass} h-3 rounded-full transition-all duration-1000 ease-out shadow-lg" 
+          <div class="bg-gradient-to-r ${gradientClass} h-3 rounded-full transition-all duration-700 ease-out shadow-lg" 
                style="width: 0%" 
                data-width="${percentage}"></div>
         </div>
@@ -879,13 +912,15 @@ function renderSumberInfo(elementId, data) {
 
     container.appendChild(bar);
 
-    // Animate bar
+    // Animate bar - Reduced timeout
     setTimeout(() => {
       const barElement = bar.querySelector('[data-width]');
-      barElement.style.width = barElement.dataset.width + '%';
-    }, 100 + (index * 100));
+      if (barElement) {
+        barElement.style.width = barElement.dataset.width + '%';
+      }
+    }, 50 + (index * 50)); // Reduced from 100
   });
 }
-    </script>
+</script>
   </body>
 </html>
