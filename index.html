@@ -504,226 +504,377 @@
       }
 
       // Render status chart
-      function renderStatusChart(data) {
-        const ctx = document.getElementById('statusChart');
-        if (charts.status) charts.status.destroy();
-
-        charts.status = new Chart(ctx, {
-          type: 'doughnut',
-          data: {
-            labels: Object.keys(data),
-            datasets: [{
-              data: Object.values(data),
-              backgroundColor: [
-                '#667eea',
-                '#764ba2',
-                '#f093fb',
-                '#4facfe',
-                '#43e97b'
-              ],
-              borderWidth: 2,
-              borderColor: '#fff'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: {
-                  padding: 15,
-                  font: { size: 12 }
-                }
-              }
+function renderStatusChart(data) {
+  const ctx = document.getElementById('statusChart');
+  if (charts.status) charts.status.destroy();
+  
+  charts.status = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(data),
+      datasets: [{
+        data: Object.values(data),
+        backgroundColor: [
+          '#064e3b',  // Dark green
+          '#059669',  // Medium green
+          '#10b981',  // Bright green
+          '#34d399',  // Light green
+          '#6ee7b7'   // Very light green
+        ],
+        borderWidth: 4,
+        borderColor: '#ffffff',
+        hoverBorderWidth: 6,
+        hoverBorderColor: '#10b981',
+        hoverOffset: 15
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: '65%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 20,
+            font: { size: 13, weight: '600' },
+            color: '#1f2937',
+            usePointStyle: true,
+            pointStyle: 'circle',
+            boxWidth: 12,
+            boxHeight: 12
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(6, 78, 59, 0.95)',
+          titleFont: { size: 14, weight: 'bold' },
+          bodyFont: { size: 13 },
+          padding: 12,
+          cornerRadius: 8,
+          displayColors: true,
+          callbacks: {
+            label: function(context) {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((context.parsed / total) * 100).toFixed(1);
+              return `${context.label}: ${context.parsed} (${percentage}%)`;
             }
           }
-        });
+        }
+      },
+      animation: {
+        animateRotate: true,
+        animateScale: true,
+        duration: 1500,
+        easing: 'easeInOutQuart'
       }
+    }
+  });
+}
 
       // Render pemahaman chart (dengan gradient untuk skala Likert)
-      function renderPemahamanChart(data) {
-        const ctx = document.getElementById('pemahamanChart');
-        if (charts.pemahaman) charts.pemahaman.destroy();
+function renderPemahamanChart(data) {
+  const ctx = document.getElementById('pemahamanChart');
+  if (charts.pemahaman) charts.pemahaman.destroy();
 
-        // Urutkan data berdasarkan skala (1-5)
-        const sortedEntries = Object.entries(data).sort((a, b) => {
-          const aNum = parseInt(a[0]);
-          const bNum = parseInt(b[0]);
-          if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
-          return 0;
-        });
+  // Urutkan data berdasarkan skala (1-5)
+  const sortedEntries = Object.entries(data).sort((a, b) => {
+    const aNum = parseInt(a[0]);
+    const bNum = parseInt(b[0]);
+    if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+    return 0;
+  });
 
-        const labels = sortedEntries.map(e => e[0]);
-        const values = sortedEntries.map(e => e[1]);
+  const labels = sortedEntries.map(e => e[0]);
+  const values = sortedEntries.map(e => e[1]);
 
-        // Gradient warna dari merah ke hijau
-        const colors = [
-          'rgba(239, 68, 68, 0.8)',   // 1 - Merah
-          'rgba(251, 146, 60, 0.8)',  // 2 - Orange
-          'rgba(250, 204, 21, 0.8)',  // 3 - Kuning
-          'rgba(52, 211, 153, 0.8)',  // 4 - Hijau muda
-          'rgba(16, 185, 129, 0.8)'   // 5 - Hijau
-        ];
+  // Gradient warna dari merah ke hijau untuk skala Likert
+  const gradientColors = [
+    { bg: 'rgba(239, 68, 68, 0.85)', border: '#dc2626' },   // 1 - Merah
+    { bg: 'rgba(251, 146, 60, 0.85)', border: '#ea580c' },  // 2 - Orange
+    { bg: 'rgba(250, 204, 21, 0.85)', border: '#ca8a04' },  // 3 - Kuning
+    { bg: 'rgba(16, 185, 129, 0.85)', border: '#059669' },  // 4 - Hijau medium
+    { bg: 'rgba(6, 78, 59, 0.85)', border: '#064e3b' }      // 5 - Hijau tua
+  ];
 
-        charts.pemahaman = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'Jumlah Responden',
-              data: values,
-              backgroundColor: colors.slice(0, labels.length),
-              borderColor: colors.slice(0, labels.length).map(c => c.replace('0.8', '1')),
-              borderWidth: 2,
-              borderRadius: 8
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return context.parsed.y + ' responden';
-                  }
-                }
-              }
+  charts.pemahaman = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Jumlah Responden',
+        data: values,
+        backgroundColor: gradientColors.slice(0, labels.length).map(c => c.bg),
+        borderColor: gradientColors.slice(0, labels.length).map(c => c.border),
+        borderWidth: 3,
+        borderRadius: 12,
+        borderSkipped: false,
+        hoverBackgroundColor: gradientColors.slice(0, labels.length).map(c => c.border),
+        hoverBorderWidth: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(6, 78, 59, 0.95)',
+          titleFont: { size: 14, weight: 'bold' },
+          bodyFont: { size: 13 },
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: {
+            label: function(context) {
+              return `${context.parsed.y} responden`;
             },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: { stepSize: 1 }
-              }
+            afterLabel: function(context) {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((context.parsed.y / total) * 100).toFixed(1);
+              return `${percentage}% dari total`;
             }
           }
-        });
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { 
+            stepSize: 1,
+            color: '#4b5563',
+            font: { size: 12, weight: '600' }
+          },
+          grid: {
+            color: 'rgba(16, 185, 129, 0.1)',
+            drawBorder: false
+          }
+        },
+        x: {
+          ticks: {
+            color: '#1f2937',
+            font: { size: 13, weight: '700' }
+          },
+          grid: {
+            display: false
+          }
+        }
+      },
+      animation: {
+        duration: 1500,
+        easing: 'easeInOutQuart'
       }
+    }
+  });
+}
 
       // Render prodi chart
-      function renderProdiChart(data) {
-        const ctx = document.getElementById('prodiChart');
-        if (charts.prodi) charts.prodi.destroy();
+function renderProdiChart(data) {
+  const ctx = document.getElementById('prodiChart');
+  if (charts.prodi) charts.prodi.destroy();
+  
+  // Buat gradient untuk setiap bar
+  const canvas = ctx;
+  const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 400, 0);
+  gradient.addColorStop(0, '#064e3b');
+  gradient.addColorStop(0.5, '#059669');
+  gradient.addColorStop(1, '#10b981');
 
-        charts.prodi = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: Object.keys(data),
-            datasets: [{
-              label: 'Jumlah Responden',
-              data: Object.values(data),
-              backgroundColor: 'rgba(118, 75, 162, 0.8)',
-              borderColor: 'rgba(118, 75, 162, 1)',
-              borderWidth: 2,
-              borderRadius: 8
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            indexAxis: 'y',
-            plugins: {
-              legend: { display: false }
-            },
-            scales: {
-              x: {
-                beginAtZero: true,
-                ticks: { stepSize: 1 }
-              }
+  charts.prodi = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(data),
+      datasets: [{
+        label: 'Jumlah Responden',
+        data: Object.values(data),
+        backgroundColor: gradient,
+        borderColor: '#064e3b',
+        borderWidth: 3,
+        borderRadius: 12,
+        borderSkipped: false,
+        hoverBackgroundColor: '#064e3b',
+        hoverBorderColor: '#10b981',
+        hoverBorderWidth: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(6, 78, 59, 0.95)',
+          titleFont: { size: 14, weight: 'bold' },
+          bodyFont: { size: 13 },
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: {
+            label: function(context) {
+              return `${context.parsed.x} responden`;
             }
           }
-        });
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { 
+            stepSize: 1,
+            color: '#4b5563',
+            font: { size: 12, weight: '600' }
+          },
+          grid: {
+            color: 'rgba(16, 185, 129, 0.1)',
+            drawBorder: false
+          }
+        },
+        y: {
+          ticks: {
+            color: '#1f2937',
+            font: { size: 12, weight: '600' }
+          },
+          grid: {
+            display: false
+          }
+        }
+      },
+      animation: {
+        duration: 1500,
+        easing: 'easeInOutQuart',
+        delay: (context) => {
+          return context.dataIndex * 100;
+        }
       }
+    }
+  });
+}
 
       // Render atmosfer chart (dengan gradient untuk skala Likert)
-      function renderAtmosferChart(data) {
-        const ctx = document.getElementById('atmosferChart');
-        if (charts.atmosfer) charts.atmosfer.destroy();
+function renderAtmosferChart(data) {
+  const ctx = document.getElementById('atmosferChart');
+  if (charts.atmosfer) charts.atmosfer.destroy();
 
-        // Urutkan data berdasarkan skala (1-5)
-        const sortedEntries = Object.entries(data).sort((a, b) => {
-          const aNum = parseInt(a[0]);
-          const bNum = parseInt(b[0]);
-          if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
-          return 0;
-        });
+  // Urutkan data berdasarkan skala (1-5)
+  const sortedEntries = Object.entries(data).sort((a, b) => {
+    const aNum = parseInt(a[0]);
+    const bNum = parseInt(b[0]);
+    if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+    return 0;
+  });
 
-        const labels = sortedEntries.map(e => e[0]);
-        const values = sortedEntries.map(e => e[1]);
+  const labels = sortedEntries.map(e => e[0]);
+  const values = sortedEntries.map(e => e[1]);
 
-        // Gradient warna dari merah ke hijau
-        const colors = [
-          '#ef4444',  // 1 - Merah
-          '#fb923c',  // 2 - Orange
-          '#facc15',  // 3 - Kuning
-          '#34d399',  // 4 - Hijau muda
-          '#10b981'   // 5 - Hijau
-        ];
+  // Gradient warna dari merah ke hijau dengan saturasi tinggi
+  const colors = [
+    '#ef4444',  // 1 - Merah cerah
+    '#f97316',  // 2 - Orange cerah
+    '#eab308',  // 3 - Kuning cerah
+    '#10b981',  // 4 - Hijau medium
+    '#064e3b'   // 5 - Hijau tua
+  ];
 
-        charts.atmosfer = new Chart(ctx, {
-          type: 'pie',
-          data: {
-            labels: labels,
-            datasets: [{
-              data: values,
-              backgroundColor: colors.slice(0, labels.length),
-              borderWidth: 2,
-              borderColor: '#fff'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: {
-                  padding: 15,
-                  font: { size: 12 }
-                }
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                    const percentage = ((context.parsed / total) * 100).toFixed(1);
-                    return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
-                  }
-                }
-              }
+  charts.atmosfer = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors.slice(0, labels.length),
+        borderWidth: 4,
+        borderColor: '#ffffff',
+        hoverBorderWidth: 6,
+        hoverBorderColor: '#10b981',
+        hoverOffset: 20
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 20,
+            font: { size: 13, weight: '600' },
+            color: '#1f2937',
+            usePointStyle: true,
+            pointStyle: 'circle',
+            boxWidth: 12,
+            boxHeight: 12
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(6, 78, 59, 0.95)',
+          titleFont: { size: 14, weight: 'bold' },
+          bodyFont: { size: 13 },
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: {
+            label: function(context) {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((context.parsed / total) * 100).toFixed(1);
+              return `${context.label}: ${context.parsed} (${percentage}%)`;
             }
           }
-        });
+        }
+      },
+      animation: {
+        animateRotate: true,
+        animateScale: true,
+        duration: 1500,
+        easing: 'easeInOutQuart'
       }
+    }
+  });
+}
 
       // Render sumber info
-      function renderSumberInfo(elementId, data) {
-        const container = document.getElementById(elementId);
-        container.innerHTML = '';
+function renderSumberInfo(elementId, data) {
+  const container = document.getElementById(elementId);
+  container.innerHTML = '';
 
-        Object.entries(data).forEach(([key, value]) => {
-          const bar = document.createElement('div');
-          bar.className = 'flex items-center space-x-3';
+  const maxValue = Math.max(...Object.values(data));
 
-          const percentage = (value / Math.max(...Object.values(data))) * 100;
+  Object.entries(data).forEach(([key, value], index) => {
+    const bar = document.createElement('div');
+    bar.className = 'flex items-center space-x-3 mb-3';
 
-          bar.innerHTML = `
-                    <div class="flex-1">
-                        <div class="flex justify-between mb-1">
-                            <span class="text-sm text-gray-700">${key}</span>
-                            <span class="text-sm font-semibold text-gray-900">${value}</span>
+    const percentage = (value / maxValue) * 100;
+
+    // Gradient color berdasarkan index
+    const gradients = [
+      'from-green-600 via-green-500 to-emerald-400',
+      'from-emerald-600 via-emerald-500 to-teal-400',
+      'from-teal-600 via-teal-500 to-cyan-400',
+      'from-green-700 via-green-600 to-green-400',
+      'from-emerald-700 via-emerald-600 to-emerald-400'
+    ];
+
+    const gradientClass = gradients[index % gradients.length];
+
+    bar.innerHTML = `
+      <div class="flex-1">
+        <div class="flex justify-between mb-2">
+          <span class="text-sm font-semibold text-gray-700">${key}</span>
+          <span class="text-sm font-bold text-green-700 bg-green-50 px-2 py-1 rounded-full">${value}</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-3 shadow-inner overflow-hidden">
+          <div class="bg-gradient-to-r ${gradientClass} h-3 rounded-full transition-all duration-1000 ease-out shadow-lg" 
+               style="width: 0%" 
+               data-width="${percentage}"></div>
+        </div>
       </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-indigo-600 h-2 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
-      </div>
-      </div>
-                `;
+    `;
 
-          container.appendChild(bar);
-        });
-      }
+    container.appendChild(bar);
+
+    // Animate bar
+    setTimeout(() => {
+      const barElement = bar.querySelector('[data-width]');
+      barElement.style.width = barElement.dataset.width + '%';
+    }, 100 + (index * 100));
+  });
+}
     </script>
   </body>
 </html>
