@@ -368,18 +368,368 @@
     </div>
 </footer>
 
-<script>
-let currentData=null,charts={};document.addEventListener("DOMContentLoaded",function(){loadAvailableYears(),setupEventListeners(),setupMobileMenu()});function setupMobileMenu(){const e=document.getElementById("menuBtn"),t=document.getElementById("mobileMenu"),n=document.getElementById("menuIcon"),o=document.getElementById("closeIcon");e.addEventListener("click",function(){t.classList.contains("hidden")?(t.classList.remove("hidden"),t.classList.add("active"),n.classList.add("hidden"),o.classList.remove("hidden")):(t.classList.add("hidden"),t.classList.remove("active"),n.classList.remove("hidden"),o.classList.add("hidden"))}),document.querySelectorAll(".mobile-menu-item").forEach(e=>{e.addEventListener("click",function(){t.classList.add("hidden"),t.classList.remove("active"),n.classList.remove("hidden"),o.classList.add("hidden")})}),document.addEventListener("click",function(a){const s=t.contains(a.target),r=e.contains(a.target);!s&&!r&&!t.classList.contains("hidden")&&(t.classList.add("hidden"),t.classList.remove("active"),n.classList.remove("hidden"),o.classList.add("hidden"))})}async function loadAvailableYears(){try{const e=await fetch("data/available-years.json"),t=await e.json(),n=document.getElementById("yearSelector");t.forEach(e=>{const t=document.createElement("option");t.value=e,t.textContent=e,n.appendChild(t)}),t.length>0&&(n.value=t[t.length-1],loadYearData(t[t.length-1]))}catch(e){console.error("Error loading years:",e),showNotice()}}function setupEventListeners(){document.getElementById("yearSelector").addEventListener("change",function(e){const t=e.target.value;t?loadYearData(t):showNotice()})}async function loadYearData(e){try{const t=await fetch(`data/${e}.json`);if(!t.ok)throw new Error("Data not found");currentData=await t.json(),hideNotice(),renderDashboard(currentData)}catch(e){console.error("Error loading data:",e),showNotice()}}function showNotice(){document.getElementById("dataNotice").classList.remove("hidden"),document.getElementById("dashboardContent").classList.add("hidden")}function hideNotice(){document.getElementById("dataNotice").classList.add("hidden"),document.getElementById("dashboardContent").classList.remove("hidden")}function renderDashboard(e){document.getElementById("totalResponden").textContent=e.summary.totalResponden,document.getElementById("mengetahuiVMTS").textContent=e.summary.mengetahuiVMTS+"%",document.getElementById("ikutSosialisasi").textContent=e.summary.ikutSosialisasi+"%",document.getElementById("perluPerbaikan").textContent=e.summary.perluPerbaikan+"%",renderStatusChart(e.status),renderPemahamanChart(e.pemahaman),renderProdiChart(e.prodi),renderAtmosferChart(e.atmosfer),renderSumberInfo("sumberInfoPT",e.sumberInfoPT),renderSumberInfo("sumberInfoProdi",e.sumberInfoProdi)}function renderStatusChart(e){const t=document.getElementById("statusChart");charts.status&&charts.status.destroy(),charts.status=new Chart(t,{type:"doughnut",data:{labels:Object.keys(e),datasets:[{data:Object.values(e),backgroundColor:["#10b981","#059669","#34d399","#6ee7b7","#a7f3d0"],borderWidth:2,borderColor:"#fff"}]},options:{responsive:!0,maintainAspectRatio:!0,plugins:{legend:{position:"bottom",labels:{padding:15,font:{size:12}}}}}})}function renderPemahamanChart(e){const t=document.getElementById("pemahamanChart");charts.pemahaman&&charts.pemahaman.destroy();const n=Object.entries(e).sort((e,t)=>{const n=parseInt(e[0]),o=parseInt(t[0]);return isNaN(n)||isNaN(o)?0:n-o}),o=n.map(e=>e[0]),a=n.map(e=>e[1]),s=["rgba(239, 68, 68, 0.8)","rgba(251, 146, 60, 0.8)","rgba(250, 204, 21, 0.8)","rgba(52, 211, 153, 0.8)","rgba(16, 185, 129, 0.8)"];charts.pemahaman=new Chart(t,{type:"bar",data:{labels:o,datasets:[{label:"Jumlah Responden",data:a,backgroundColor:s.slice(0,o.length),borderColor:s.slice(0,o.length).map(e=>e.replace("0.8","1")),borderWidth:2,borderRadius:8}]},options:{responsive:!0,maintainAspectRatio:!0,plugins:{legend:{display:!1},tooltip:{callbacks:{label:function(e){return e.parsed.y+" responden"}}}},scales:{y:{beginAtZero:!0,ticks:{stepSize:1}}}}})}function renderProdiChart(e){const t=document.getElementById("prodiChart");charts.prodi&&charts.prodi.destroy(),charts.prodi=new Chart(t,{type:"bar",data:{labels:Object.keys(e),datasets:[{label:"Jumlah Responden",data:Object.values(e),backgroundColor:"rgba(16, 185, 129, 0.8)",borderColor:"rgba(16, 185, 129, 1)",borderWidth:2,borderRadius:8}]},options:{responsive:!0,maintainAspectRatio:!0,indexAxis:"y",plugins:{legend:{display:!1}},scales:{x:{beginAtZero:!0,ticks:{stepSize:1}}}}})}function renderAtmosferChart(e){const t=document.getElementById("atmosferChart");charts.atmosfer&&charts.atmosfer.destroy();const n=Object.entries(e).sort((e,t)=>{const n=parseInt(e[0]),o=parseInt(t[0]);return isNaN(n)||isNaN(o)?0:n-o}),o=n.map(e=>e[0]),a=n.map(e=>e[1]),s=["#ef4444","#fb923c","#facc15","#34d399","#10b981"];charts.atmosfer=new Chart(t,{type:"pie",data:{labels:o,datasets:[{data:a,backgroundColor:s.slice(0,o.length),borderWidth:2,borderColor:"#fff"}]},options:{responsive:!0,maintainAspectRatio:!0,plugins:{legend:{position:"bottom",labels:{padding:15,font:{size:12}}},tooltip:{callbacks:{label:function(e){const t=e.dataset.data.reduce((e,t)=>e+t,0),n=(e.parsed/t*100).toFixed(1);return e.label+": "+e.parsed+" ("+n+"%)"}}}}}}})}function renderSumberInfo(e,t){const n=document.getElementById(e);n.innerHTML="",Object.entries(t).forEach(([e,o])=>{const a=document.createElement("div");a.className="flex items-center space-x-3";const s=o/Math.max(...Object.values(t))*100;a.innerHTML=`
+    <script>
+        // Data storage
+        let currentData = null;
+        let charts = {};
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAvailableYears();
+            setupEventListeners();
+            setupMobileMenu();
+        });
+
+        // Setup mobile menu
+        function setupMobileMenu() {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const menuIcon = document.getElementById('menuIcon');
+            const closeIcon = document.getElementById('closeIcon');
+            const mobileMenuItems = document.querySelectorAll('.mobile-menu-item');
+
+            // Toggle menu on button click
+            mobileMenuBtn.addEventListener('click', function() {
+                const isHidden = mobileMenu.classList.contains('hidden');
+                
+                if (isHidden) {
+                    mobileMenu.classList.remove('hidden');
+                    mobileMenu.classList.add('animate-slideDown');
+                    menuIcon.classList.add('hidden');
+                    closeIcon.classList.remove('hidden');
+                } else {
+                    mobileMenu.classList.add('hidden');
+                    mobileMenu.classList.remove('animate-slideDown');
+                    menuIcon.classList.remove('hidden');
+                    closeIcon.classList.add('hidden');
+                }
+            });
+
+            // Close menu when clicking a menu item
+            mobileMenuItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    mobileMenu.classList.add('hidden');
+                    menuIcon.classList.remove('hidden');
+                    closeIcon.classList.add('hidden');
+                });
+            });
+
+            // Close menu when clicking outside
+            document.addEventListener('click', function(event) {
+                const isClickInsideMenu = mobileMenu.contains(event.target);
+                const isClickOnButton = mobileMenuBtn.contains(event.target);
+                
+                if (!isClickInsideMenu && !isClickOnButton && !mobileMenu.classList.contains('hidden')) {
+                    mobileMenu.classList.add('hidden');
+                    menuIcon.classList.remove('hidden');
+                    closeIcon.classList.add('hidden');
+                }
+            });
+        }
+
+        // Load available years
+        async function loadAvailableYears() {
+            try {
+                const response = await fetch('data/available-years.json');
+                const years = await response.json();
+                
+                const selector = document.getElementById('yearSelector');
+                years.forEach(year => {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    selector.appendChild(option);
+                });
+                
+                // Auto select latest year if available
+                if (years.length > 0) {
+                    selector.value = years[years.length - 1];
+                    loadYearData(years[years.length - 1]);
+                }
+            } catch (error) {
+                console.error('Error loading years:', error);
+                showNotice();
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('yearSelector').addEventListener('change', function(e) {
+                const year = e.target.value;
+                if (year) {
+                    loadYearData(year);
+                } else {
+                    showNotice();
+                }
+            });
+        }
+
+        // Load data for selected year
+        async function loadYearData(year) {
+            try {
+                const response = await fetch(`data/${year}.json`);
+                if (!response.ok) throw new Error('Data not found');
+                
+                currentData = await response.json();
+                hideNotice();
+                renderDashboard(currentData);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showNotice();
+            }
+        }
+
+        // Show/hide notice
+        function showNotice() {
+            document.getElementById('dataNotice').classList.remove('hidden');
+            document.getElementById('dashboardContent').classList.add('hidden');
+        }
+
+        function hideNotice() {
+            document.getElementById('dataNotice').classList.add('hidden');
+            document.getElementById('dashboardContent').classList.remove('hidden');
+        }
+
+        // Render dashboard with data
+        function renderDashboard(data) {
+            // Update summary cards
+            document.getElementById('totalResponden').textContent = data.summary.totalResponden;
+            document.getElementById('mengetahuiVMTS').textContent = data.summary.mengetahuiVMTS + '%';
+            document.getElementById('ikutSosialisasi').textContent = data.summary.ikutSosialisasi + '%';
+            document.getElementById('perluPerbaikan').textContent = data.summary.perluPerbaikan + '%';
+
+            // Render charts
+            renderStatusChart(data.status);
+            renderPemahamanChart(data.pemahaman);
+            renderProdiChart(data.prodi);
+            renderAtmosferChart(data.atmosfer);
+            
+            // Render detailed info
+            renderSumberInfo('sumberInfoPT', data.sumberInfoPT);
+            renderSumberInfo('sumberInfoProdi', data.sumberInfoProdi);
+        }
+
+        // Render status chart
+        function renderStatusChart(data) {
+            const ctx = document.getElementById('statusChart');
+            if (charts.status) charts.status.destroy();
+            
+            charts.status = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        data: Object.values(data),
+                        backgroundColor: [
+                            '#667eea',
+                            '#764ba2',
+                            '#f093fb',
+                            '#4facfe',
+                            '#43e97b'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: { size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render pemahaman chart (dengan gradient untuk skala Likert)
+        function renderPemahamanChart(data) {
+            const ctx = document.getElementById('pemahamanChart');
+            if (charts.pemahaman) charts.pemahaman.destroy();
+            
+            // Urutkan data berdasarkan skala (1-5)
+            const sortedEntries = Object.entries(data).sort((a, b) => {
+                const aNum = parseInt(a[0]);
+                const bNum = parseInt(b[0]);
+                if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+                return 0;
+            });
+            
+            const labels = sortedEntries.map(e => e[0]);
+            const values = sortedEntries.map(e => e[1]);
+            
+            // Gradient warna dari merah ke hijau
+            const colors = [
+                'rgba(239, 68, 68, 0.8)',   // 1 - Merah
+                'rgba(251, 146, 60, 0.8)',  // 2 - Orange
+                'rgba(250, 204, 21, 0.8)',  // 3 - Kuning
+                'rgba(52, 211, 153, 0.8)',  // 4 - Hijau muda
+                'rgba(16, 185, 129, 0.8)'   // 5 - Hijau
+            ];
+            
+            charts.pemahaman = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah Responden',
+                        data: values,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderColor: colors.slice(0, labels.length).map(c => c.replace('0.8', '1')),
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y + ' responden';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render prodi chart
+        function renderProdiChart(data) {
+            const ctx = document.getElementById('prodiChart');
+            if (charts.prodi) charts.prodi.destroy();
+            
+            charts.prodi = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        label: 'Jumlah Responden',
+                        data: Object.values(data),
+                        backgroundColor: 'rgba(118, 75, 162, 0.8)',
+                        borderColor: 'rgba(118, 75, 162, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render atmosfer chart (dengan gradient untuk skala Likert)
+        function renderAtmosferChart(data) {
+            const ctx = document.getElementById('atmosferChart');
+            if (charts.atmosfer) charts.atmosfer.destroy();
+            
+            // Urutkan data berdasarkan skala (1-5)
+            const sortedEntries = Object.entries(data).sort((a, b) => {
+                const aNum = parseInt(a[0]);
+                const bNum = parseInt(b[0]);
+                if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+                return 0;
+            });
+            
+            const labels = sortedEntries.map(e => e[0]);
+            const values = sortedEntries.map(e => e[1]);
+            
+            // Gradient warna dari merah ke hijau
+            const colors = [
+                '#ef4444',  // 1 - Merah
+                '#fb923c',  // 2 - Orange
+                '#facc15',  // 3 - Kuning
+                '#34d399',  // 4 - Hijau muda
+                '#10b981'   // 5 - Hijau
+            ];
+            
+            charts.atmosfer = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: { size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render sumber info
+        function renderSumberInfo(elementId, data) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = '';
+            
+            Object.entries(data).forEach(([key, value]) => {
+                const bar = document.createElement('div');
+                bar.className = 'flex items-center space-x-3';
+                
+                const percentage = (value / Math.max(...Object.values(data))) * 100;
+                
+                bar.innerHTML = `
                     <div class="flex-1">
                         <div class="flex justify-between mb-1">
-                            <span class="text-sm text-gray-700">${e}</span>
-                            <span class="text-sm font-semibold text-gray-900">${o}</span>
+                            <span class="text-sm text-gray-700">${key}</span>
+                            <span class="text-sm font-semibold text-gray-900">${value}</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-500" style="width: ${s}%"></div>
+                            <div class="bg-indigo-600 h-2 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
                         </div>
                     </div>
-                `,n.appendChild(a)})}window.addEventListener("scroll",function(){document.querySelectorAll(".section-reveal").forEach(e=>{e.getBoundingClientRect().top<window.innerHeight-100&&e.classList.add("active")})});
-</script>
+                `;
+                
+                container.appendChild(bar);
+            });
+        }
+    </script>
 </body>
 </html>
